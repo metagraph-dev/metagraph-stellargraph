@@ -20,5 +20,7 @@ def find_plugins():
     # Ensure we import all items we want registered
     from . import stellargraph
 
-    registry.register_from_modules(cudf, name="metagraph_stellargraph_stellargraph")
+    registry.register_from_modules(
+        stellargraph, name="metagraph_stellargraph_stellargraph"
+    )
     return registry.plugins
