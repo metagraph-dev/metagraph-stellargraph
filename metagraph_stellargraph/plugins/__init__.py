@@ -13,7 +13,7 @@ except ImportError:
 import metagraph
 
 # Use this as the entry_point object
-registry = metagraph.PluginRegistry("metagraph_cuda")
+registry = metagraph.PluginRegistry("metagraph_stellargraph")
 
 
 def find_plugins():
