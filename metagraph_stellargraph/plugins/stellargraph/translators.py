@@ -20,7 +20,7 @@ if has_networkx and has_stellargraph:
         if aprops["node_type"] == "map":
             node_weight_index = 0
             nodes, weights = x.value.nodes(data=x.node_weight_label)
-            weight_vectors = [[weight] for weight in weights]
+            weight_vectors = ([weight] for weight in weights)
             node_features = pd.DataFrame(weight_vectors, index=nodes)
         else:
             node_weight_index = None

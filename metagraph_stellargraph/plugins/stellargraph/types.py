@@ -44,11 +44,12 @@ if has_stellargraph:
             )
             if node_weight_index is not None:
                 self._assert_instance(node_weight_index, int)
+                valid_index_range_end = (
+                    sg_graph.node_features(node_type=node_sg_type, nodes=[]).shape[1]
+                    - 1
+                )
                 self._assert(
-                    0
-                    <= node_weight_index
-                    < sg_graph.node_features(node_type=node_sg_type, nodes=[]).shape[1]
-                    - 1,
+                    0 <= node_weight_index < valid_index_range_end,
                     f"node weight index ({node_weight_index})is not valid.",
                 )
             self.value = sg_graph
