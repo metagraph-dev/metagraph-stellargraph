@@ -8,6 +8,7 @@ if has_stellargraph:
     from metagraph.plugins.python.types import PythonNodeMap, PythonNodeSet
     from metagraph.plugins.numpy.types import (
         NumpyNodeMap,
+        NumpyVector,
         NumpyMatrix,
         NumpyNodeEmbedding,
     )
@@ -84,4 +85,32 @@ if has_stellargraph:
 
         node2index = NumpyNodeMap(np.arange(len(nodes)), node_ids=nodes.to_numpy())
         matrix = NumpyMatrix(node_embeddings)
+        return NumpyNodeEmbedding(matrix, node2index)
+
+    @concrete_algorithm("embedding.train.graphwave")
+    def sg_graphwave_train(
+        graph: StellarGraph,
+        scales: NumpyVector,
+        sample_point_count: int,
+        sample_point_max: float,
+        chebyshev_degree: int,
+    ) -> NumpyNodeEmbedding:
+        sample_points = np.linspace(0, sample_point_max, sample_point_count).astype(
+            np.float32
+        )
+        generator = sg.mapper.GraphWaveGenerator(
+            graph.value, scales=scales.as_dense(copy=False), degree=chebyshev_degree
+        )
+        nodes = graph.value.nodes().sort_values()
+        embeddings_dataset = generator.flow(
+            node_ids=nodes,
+            sample_points=sample_points,
+            batch_size=len(nodes),
+            shuffle=False,
+            repeat=False,
+        )
+        tf_tensor = list(embeddings_dataset)[0]  # TODO do we want a tensor matrix type?
+        np_matrix = tf_tensor.numpy()
+        matrix = NumpyMatrix(np_matrix)
+        node2index = NumpyNodeMap(np.arange(len(nodes)), node_ids=nodes.to_numpy())
         return NumpyNodeEmbedding(matrix, node2index)
