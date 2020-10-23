@@ -2,9 +2,14 @@ from .. import has_stellargraph
 from metagraph import concrete_algorithm
 
 if has_stellargraph:
+    import tempfile
+    import os
+    import uuid
     import stellargraph as sg
     import tensorflow as tf
     import numpy as np
+    import pandas as pd
+    from metagraph.plugins.networkx.types import NetworkXGraph
     from metagraph.plugins.python.types import PythonNodeMap, PythonNodeSet
     from metagraph.plugins.numpy.types import (
         NumpyNodeMap,
@@ -12,7 +17,7 @@ if has_stellargraph:
         NumpyMatrix,
         NumpyNodeEmbedding,
     )
-    from .types import StellarGraph
+    from .types import StellarGraph, StellarGraphGraphSageNodeEmbedding
 
     @concrete_algorithm("subgraph.extract_subgraph")
     def sg_extract_subgraph(graph: StellarGraph, nodes: PythonNodeSet) -> StellarGraph:
@@ -32,7 +37,34 @@ if has_stellargraph:
         for i, nodes in enumerate(graph.value.connected_components()):
             for node in nodes:
                 index_to_label[node] = i
-        return PythonNodeMap(index_to_label)
+        return pythonnodemap(index_to_label)
+
+    @concrete_algorithm("util.graph_sage_node_embedding.apply")
+    def sg_graph_sage_node_embedding_apply(
+        embedding: StellarGraphGraphSageNodeEmbedding,
+        graph: NetworkXGraph,
+        node_features: NumpyNodeEmbedding,
+        batch_size: int = 1,
+        worker_count: int = 1,
+    ) -> NumpyMatrix:
+        nodes = node_features.nodes.pos2id
+        # TODO generating a whole new StellarGraph here seems expensive
+        node_features_df = pd.DataFrame(
+            node_features.nodes.value, index=node_features.nodes.pos2id
+        )
+        sg_graph = sg.StellarGraph.from_networkx(
+            graph.value,
+            edge_weight_attr=graph.edge_weight_label or "weight",
+            node_features=node_features_df,
+        )
+        node_gen = sg.mapper.GraphSAGENodeGenerator(
+            sg_graph, batch_size, embedding.samples_per_layer
+        ).flow(nodes)
+
+        node_embeddings = embedding.model.predict(
+            node_gen, workers=worker_count, verbose=1
+        )
+        return NumpyMatrix(node_embeddings)
 
     @concrete_algorithm("embedding.train.node2vec")
     def sg_node2vec_train(
@@ -65,7 +97,7 @@ if has_stellargraph:
         model.compile(
             optimizer=tf.keras.optimizers.Adam(lr=learning_rate),
             loss=tf.keras.losses.binary_crossentropy,
-            metrics=[tf.keras.metrics.binary_accuracy],  # @todo comment this out
+            # metrics=[tf.keras.metrics.binary_accuracy],
         )
         model.fit(
             generator.flow(unsupervised_samples),
@@ -114,3 +146,94 @@ if has_stellargraph:
         matrix = NumpyMatrix(np_matrix)
         node2index = NumpyNodeMap(np.arange(len(nodes)), node_ids=nodes.to_numpy())
         return NumpyNodeEmbedding(matrix, node2index)
+
+    @concrete_algorithm("embedding.train.graph_sage.mean")
+    def sg_graph_sage_mean_train(
+        graph: NetworkXGraph,
+        node_features: NumpyNodeEmbedding,
+        walk_length: int,
+        walks_per_node: int,
+        layer_sizes: NumpyVector,
+        samples_per_layer: NumpyVector,
+        epochs: int,
+        learning_rate: float,
+        batch_size: int,
+        dropout_probability: float = 0.0,
+        use_bias: bool = True,
+        normalization_method: str = "l2",
+        worker_count: int = 1,
+    ) -> StellarGraphGraphSageNodeEmbedding:
+        assert set(graph.value.nodes()) == set(
+            node_features.nodes.pos2id
+        ), f"Nodes in graph {graph} do not match nodes features {node_features}"
+        assert len(layer_sizes) == len(
+            samples_per_layer
+        ), f"Number of layer sizes ({len(layer_sizes)}) do not match the number of values specifiying the samples for each layer ({len(samples_per_layer)})"
+        # StellarGraph cannot add node features after a graph has been created,
+        # so it's less expensive to take a NetworkX graph and create a new StellarGraph
+        # graph than to go from StellarGraph -> NetworkX -> StellarGraph
+        node_features_df = pd.DataFrame(
+            node_features.nodes.value, index=node_features.nodes.pos2id
+        )
+        sg_graph = sg.StellarGraph.from_networkx(
+            graph.value,
+            edge_weight_attr=graph.edge_weight_label or "weight",
+            node_features=node_features_df,
+        )
+
+        # TODO samples_per_layer and layer_sizes are converted to lists; consider making a Python list or Tuple
+        samples_per_layer_list = samples_per_layer.as_dense().tolist()
+        unsupervised_samples = sg.data.UnsupervisedSampler(
+            sg_graph,
+            nodes=list(sg_graph.nodes()),
+            length=walk_length,
+            number_of_walks=walks_per_node,
+        )
+        generator = sg.mapper.GraphSAGELinkGenerator(
+            sg_graph, batch_size, samples_per_layer_list
+        )
+        train_gen = generator.flow(unsupervised_samples)
+        graphsage = sg.layer.GraphSAGE(
+            layer_sizes=layer_sizes.as_dense().tolist(),
+            generator=generator,
+            bias=True,
+            dropout=0.0,
+            normalize="l2",
+        )
+        x_inp, x_out = graphsage.in_out_tensors()
+        prediction = sg.layer.link_classification(
+            output_dim=1, output_act="sigmoid", edge_embedding_method="dot"
+        )(x_out)
+        model = tf.keras.Model(inputs=x_inp, outputs=prediction)
+        model.compile(
+            optimizer=tf.keras.optimizers.Adam(lr=learning_rate),
+            loss=tf.keras.losses.binary_crossentropy,
+            metrics=[tf.keras.metrics.binary_accuracy],
+        )
+        with tempfile.TemporaryDirectory(
+            prefix=f"stellargraph_graph_sage_{uuid.uuid4().hex}_"
+        ) as tmp_dir:
+            history = model.fit(
+                train_gen,
+                epochs=epochs,
+                verbose=1,
+                use_multiprocessing=False,
+                workers=worker_count,
+                shuffle=True,
+                callbacks=tf.keras.callbacks.ModelCheckpoint(
+                    filepath=os.path.join(tmp_dir, "model.{epoch}.h5")
+                ),
+            )
+            best_epoch_index = np.argmin(history.history["loss"])
+            best_model_checkpoint_path = os.path.join(
+                tmp_dir, f"model.{1+best_epoch_index}.h5"
+            )
+            model.load_weights(best_model_checkpoint_path)
+
+        x_inp_src = x_inp[0::2]
+        x_out_src = x_out[0]
+        embedding_model = tf.keras.Model(inputs=x_inp_src, outputs=x_out_src)
+
+        return StellarGraphGraphSageNodeEmbedding(
+            embedding_model, samples_per_layer_list
+        )

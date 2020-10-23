@@ -1,7 +1,7 @@
-from metagraph.types import Graph
-from metagraph.wrappers import GraphWrapper
+from metagraph.types import Graph, GraphSageNodeEmbedding
+from metagraph.wrappers import GraphWrapper, GraphSageNodeEmbeddingWrapper
 from .. import has_stellargraph
-from typing import Set, Dict, Any
+from typing import Set, List, Dict, Any
 import copy
 import math
 import numpy as np
@@ -21,6 +21,7 @@ def _determine_array_dtype(array: np.ndarray) -> str:
 
 if has_stellargraph:
     import stellargraph as sg
+    import tensorflow as tf
 
     class StellarGraph(GraphWrapper, abstract=Graph):
         def __init__(
@@ -181,3 +182,42 @@ if has_stellargraph:
                             assert (
                                 g1_weight == g2_weight
                             ), f"Weights differ for edge {edge}"
+
+    class StellarGraphGraphSageNodeEmbedding(
+        GraphSageNodeEmbeddingWrapper, abstract=GraphSageNodeEmbedding
+    ):
+        def __init__(self, model, samples_per_layer: List[int]):
+            super().__init__()
+            self._assert_instance(model, tf.keras.Model)
+            self._assert_instance(samples_per_layer, list)
+            self._assert(
+                all(
+                    isinstance(sample_count, int) for sample_count in samples_per_layer
+                ),
+                f"{samples_per_layer} is not a list of int values",
+            )
+            self.model = model
+            self.samples_per_layer = samples_per_layer  # TODO this could be a dynamic value given at embeddding time
+
+        class TypeMixin:
+            @classmethod
+            def _compute_abstract_properties(
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
+            ) -> Dict[str, Any]:
+                ret = known_props.copy()
+                return ret
+
+            @classmethod
+            def assert_equal(
+                cls,
+                obj1,
+                obj2,
+                aprops1,
+                aprops2,
+                cprops1,
+                cprops2,
+                *,
+                rel_tol=1e-9,
+                abs_tol=0.0,
+            ):
+                assert False, f"Cannot compare instances of {cls.__qualname__}"
