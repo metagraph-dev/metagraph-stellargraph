@@ -13,18 +13,7 @@ dependencies:
   - black
   - conda-forge::pre-commit
   - setuptools
-
-# metagraph dependencies
-  - importlib_metadata
-  - numpy
-  - networkx
-  - pandas
-  - conda-forge::python-louvain
-  - scipy
-  - conda-forge::donfig
-  - conda-forge::grblas
-  - conda-forge::nest-asyncio
-  - dask
+  - metagraph::metagraph
 
 # metagraph-stellargraph dependencies
   - stellargraph::stellargraph
