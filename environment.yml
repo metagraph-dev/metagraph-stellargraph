@@ -1,0 +1,19 @@
+name: mgstellargraph
+
+channels:
+- conda-forge
+- stellargraph
+
+dependencies:
+# dev environment
+  - python=3.7
+  - coverage
+  - pytest
+  - pytest-cov
+  - black
+  - conda-forge::pre-commit
+  - setuptools
+  - metagraph::metagraph
+
+# metagraph-stellargraph dependencies
+  - stellargraph::stellargraph
