@@ -59,7 +59,7 @@ if has_stellargraph:
         )
         node_gen = sg.mapper.GraphSAGENodeGenerator(
             sg_graph, batch_size, embedding.samples_per_layer
-        ).flow(nodes)
+        ).flow(node2row.pos2id)
 
         node_embeddings = embedding.model.predict(
             node_gen, workers=worker_count, verbose=1
