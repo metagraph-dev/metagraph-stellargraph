@@ -1,5 +1,6 @@
 from .. import has_stellargraph
 from metagraph import concrete_algorithm
+from typing import Tuple
 
 if has_stellargraph:
     import tempfile
@@ -15,7 +16,6 @@ if has_stellargraph:
         NumpyNodeMap,
         NumpyVector,
         NumpyMatrix,
-        NumpyNodeEmbedding,
     )
     from .types import StellarGraph, StellarGraphGraphSageNodeEmbedding
 
@@ -37,20 +37,20 @@ if has_stellargraph:
         for i, nodes in enumerate(graph.value.connected_components()):
             for node in nodes:
                 index_to_label[node] = i
-        return pythonnodemap(index_to_label)
+        return PythonNodeMap(index_to_label)
 
     @concrete_algorithm("util.graph_sage_node_embedding.apply")
     def sg_graph_sage_node_embedding_apply(
         embedding: StellarGraphGraphSageNodeEmbedding,
         graph: NetworkXGraph,
-        node_features: NumpyNodeEmbedding,
+        node_features: NumpyMatrix,
+        node2row: NumpyNodeMap,
         batch_size: int = 1,
         worker_count: int = 1,
     ) -> NumpyMatrix:
-        nodes = node_features.nodes.pos2id
         # TODO generating a whole new StellarGraph here seems expensive
         node_features_df = pd.DataFrame(
-            node_features.nodes.value, index=node_features.nodes.pos2id
+            node_features.as_dense(copy=False), index=node2row.pos2id
         )
         sg_graph = sg.StellarGraph.from_networkx(
             graph.value,
@@ -59,7 +59,7 @@ if has_stellargraph:
         )
         node_gen = sg.mapper.GraphSAGENodeGenerator(
             sg_graph, batch_size, embedding.samples_per_layer
-        ).flow(nodes)
+        ).flow(node2row.pos2id)
 
         node_embeddings = embedding.model.predict(
             node_gen, workers=worker_count, verbose=1
@@ -78,7 +78,7 @@ if has_stellargraph:
         learning_rate: float,
         worker_count: int = 1,
         batch_size: int = 10_000,
-    ) -> NumpyNodeEmbedding:
+    ) -> Tuple[NumpyMatrix, NumpyNodeMap]:
 
         walker = sg.data.BiasedRandomWalk(
             graph.value, n=walks_per_node, length=walk_length, p=p, q=q,
@@ -117,7 +117,7 @@ if has_stellargraph:
 
         node2index = NumpyNodeMap(np.arange(len(nodes)), node_ids=nodes.to_numpy())
         matrix = NumpyMatrix(node_embeddings)
-        return NumpyNodeEmbedding(matrix, node2index)
+        return (matrix, node2index)
 
     @concrete_algorithm("embedding.train.graphwave")
     def sg_graphwave_train(
@@ -126,7 +126,7 @@ if has_stellargraph:
         sample_point_count: int,
         sample_point_max: float,
         chebyshev_degree: int,
-    ) -> NumpyNodeEmbedding:
+    ) -> Tuple[NumpyMatrix, NumpyNodeMap]:
         sample_points = np.linspace(0, sample_point_max, sample_point_count).astype(
             np.float32
         )
@@ -145,12 +145,13 @@ if has_stellargraph:
         np_matrix = tf_tensor.numpy()
         matrix = NumpyMatrix(np_matrix)
         node2index = NumpyNodeMap(np.arange(len(nodes)), node_ids=nodes.to_numpy())
-        return NumpyNodeEmbedding(matrix, node2index)
+        return (matrix, node2index)
 
     @concrete_algorithm("embedding.train.graph_sage.mean")
     def sg_graph_sage_mean_train(
         graph: NetworkXGraph,
-        node_features: NumpyNodeEmbedding,
+        node_features: NumpyMatrix,
+        node2row: NumpyNodeMap,
         walk_length: int,
         walks_per_node: int,
         layer_sizes: NumpyVector,
@@ -164,8 +165,8 @@ if has_stellargraph:
         worker_count: int = 1,
     ) -> StellarGraphGraphSageNodeEmbedding:
         assert set(graph.value.nodes()) == set(
-            node_features.nodes.pos2id
-        ), f"Nodes in graph {graph} do not match nodes features {node_features}"
+            node2row.pos2id
+        ), f"Nodes in graph {graph} do not match nodes features {node2row}"
         assert len(layer_sizes) == len(
             samples_per_layer
         ), f"Number of layer sizes ({len(layer_sizes)}) do not match the number of values specifiying the samples for each layer ({len(samples_per_layer)})"
@@ -173,7 +174,7 @@ if has_stellargraph:
         # so it's less expensive to take a NetworkX graph and create a new StellarGraph
         # graph than to go from StellarGraph -> NetworkX -> StellarGraph
         node_features_df = pd.DataFrame(
-            node_features.nodes.value, index=node_features.nodes.pos2id
+            node_features.as_dense(copy=False), index=node2row.pos2id
         )
         sg_graph = sg.StellarGraph.from_networkx(
             graph.value,
