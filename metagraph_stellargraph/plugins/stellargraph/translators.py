@@ -19,7 +19,7 @@ if has_networkx and has_stellargraph:
 
         if aprops["node_type"] == "map":
             node_weight_index = 0
-            nodes, weights = x.value.nodes(data=x.node_weight_label)
+            nodes, weights = zip(*x.value.nodes(data=x.node_weight_label))
             weight_vectors = ([weight] for weight in weights)
             node_features = pd.DataFrame(weight_vectors, index=nodes)
         else:
@@ -28,12 +28,16 @@ if has_networkx and has_stellargraph:
 
         is_weighted = aprops["edge_type"] == "map"
 
-        if aprops["node_dtype"] == "int":
+        if node_features is None:
+            dtype = None
+        elif aprops["node_dtype"] == "int":
             dtype = np.int64  # TODO how much precision do we want?
         elif aprops["node_dtype"] == "float":
             dtype = np.float64  # TODO how much precision do we want?
+        elif aprops["node_dtype"] == "bool":
+            dtype = np.bool
         else:
-            dtype = np.dtype("U")
+            raise TypeError(f"unable to determine node dtype of {NetworkXGraph}")
 
         node_sg_type = "default"
         edge_sg_type = "default"
