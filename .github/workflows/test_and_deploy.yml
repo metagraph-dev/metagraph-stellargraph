@@ -28,6 +28,10 @@ jobs:
       - name: Conda Build
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
+          conda config --set always_yes yes --set changeps1 no
+          conda update -q conda
+          conda info -a
+          conda install -q conda-build
           conda build -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda
           # This doesn't rebuild, but simply computes the name of the file that was previously built
           OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda)
