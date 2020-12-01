@@ -15,7 +15,9 @@ def _determine_array_dtype(array: np.ndarray) -> str:
     elif array.dtype.char in np.typecodes["AllInteger"]:
         dtype_str = "int"
     else:
-        dtype_str = "str"
+        raise TypeError(
+            f"unable to determine dtype, array.dtype.char={array.dtype.char}"
+        )
     return dtype_str
 
 
@@ -45,13 +47,12 @@ if has_stellargraph:
             )
             if node_weight_index is not None:
                 self._assert_instance(node_weight_index, int)
-                valid_index_range_end = (
-                    sg_graph.node_features(node_type=node_sg_type, nodes=[]).shape[1]
-                    - 1
-                )
+                valid_index_range_end = sg_graph.node_features(
+                    node_type=node_sg_type, nodes=[]
+                ).shape[1]
                 self._assert(
                     0 <= node_weight_index < valid_index_range_end,
-                    f"node weight index ({node_weight_index})is not valid.",
+                    f"node weight index ({node_weight_index}) is not valid.",
                 )
             self.value = sg_graph
             self.node_weight_index = node_weight_index
@@ -83,25 +84,36 @@ if has_stellargraph:
                     "edge_type",
                     "edge_dtype",
                 } - ret.keys():
-
                     if prop == "is_directed":
                         ret[prop] = obj.value.is_directed()
                     if prop == "node_type":
                         ret[prop] = "set" if obj.node_weight_index is None else "map"
                     if prop == "node_dtype":
-                        ret[prop] = _determine_array_dtype(obj.value.node_features())
+                        ret[prop] = (
+                            None
+                            if obj.node_weight_index is None
+                            else _determine_array_dtype(obj.value.node_features())
+                        )
                     if prop == "edge_type":
-                        ret[prop] = "set" if obj.is_weighted is None else "map"
+                        ret[prop] = "map" if obj.is_weighted else "set"
                     if prop == "edge_dtype":
-                        ret[prop] = _determine_array_dtype(
-                            obj.value.edge_arrays(include_edge_weight=True)[3]
+                        ret[prop] = (
+                            _determine_array_dtype(
+                                obj.value.edge_arrays(include_edge_weight=True)[3]
+                            )
+                            if obj.is_weighted
+                            else None
                         )
 
                 # slow properties, only compute if asked
                 slow_props = props - ret.keys()
-                if {"edge_has_negative_weights"} & slow_props:
-                    _, weights = obj.value.edges(include_edge_weight=True)
-                    ret[prop] = (weights < 0).any()
+                for prop in slow_props:
+                    if prop == "edge_has_negative_weights":
+                        if ret["edge_dtype"] == "bool" or not obj.is_weighted:
+                            ret[prop] = None
+                        else:
+                            _, weights = obj.value.edges(include_edge_weight=True)
+                            ret[prop] = (weights < 0).any()
 
                 return ret
 
