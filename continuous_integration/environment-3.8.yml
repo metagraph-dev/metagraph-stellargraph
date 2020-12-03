@@ -11,10 +11,10 @@ dependencies:
   - coverage
   - pytest
   - pytest-cov
-  - black
-  - conda-forge::pre-commit
+  - black >=20.8b1
+  - pre-commit
   - setuptools
-  - metagraph::metagraph
 
 # metagraph-stellargraph dependencies
-  - stellargraph::stellargraph
+  - stellargraph
+  - metagraph >=0.2.3
