@@ -1,5 +1,5 @@
 package:
-   name: metagraph_stellargraph
+   name: metagraph-stellargraph
    version: {{ environ.get('GIT_DESCRIBE_TAG', 'unknown') }}
 
 source:
