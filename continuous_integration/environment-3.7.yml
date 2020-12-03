@@ -2,6 +2,7 @@ name: mg
 
 channels:
 - conda-forge
+- metagraph/label/dev
 - stellargraph
 
 dependencies:
