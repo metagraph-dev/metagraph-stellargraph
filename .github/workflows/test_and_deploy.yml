@@ -87,6 +87,9 @@ jobs:
           conda update -q conda
           conda create -n mg python=${{ matrix.pyver }} pytest coverage pytest-cov
           conda activate mg
+          # TODO: remove this hack once no longer needed; without this, tensorflow gets installed incorrectly
+          #       which leads to a segfault
+          conda install -c stellargraph stellargraph
           # Install built_package
           BUILT_PKG=`ls ./artifact_storage | head -1`
           conda install ./artifact_storage/$BUILT_PKG
