@@ -89,7 +89,7 @@ jobs:
           conda activate mg
           # TODO: remove this hack once no longer needed; without this, tensorflow gets installed incorrectly
           #       which leads to a segfault
-          conda install -c stellargraph -c defaults -c conda-forge stellargraph
+          conda install -c stellargraph -c defaults -c conda-forge stellargraph 'tensorflow-base>=2.3.0'
           # Install built_package
           BUILT_PKG=`ls ./artifact_storage | head -1`
           conda install ./artifact_storage/$BUILT_PKG
