@@ -81,7 +81,11 @@ if has_stellargraph:
     ) -> Tuple[NumpyMatrixType, NumpyNodeMap]:
 
         walker = sg.data.BiasedRandomWalk(
-            graph.value, n=walks_per_node, length=walk_length, p=p, q=q,
+            graph.value,
+            n=walks_per_node,
+            length=walk_length,
+            p=p,
+            q=q,
         )
         unsupervised_samples = sg.data.UnsupervisedSampler(
             graph.value, nodes=list(graph.value.nodes()), walker=walker
