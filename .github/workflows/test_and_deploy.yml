@@ -132,4 +132,4 @@ jobs:
           ls -la ./artifact_storage
           UPLOAD=`ls ./artifact_storage | head -1`
           echo "Uploading $UPLOAD with label=${{ env.AC_LABEL }}"
-          $CONDA/bin/anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l ${{ env.AC_LABEL }} --no-progress --force --register ./artifact_storage/$UPLOAD
+          $CONDA/bin/anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l ${{ env.AC_LABEL }} --no-progress --force --no-register ./artifact_storage/$UPLOAD
