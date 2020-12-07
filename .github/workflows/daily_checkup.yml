@@ -8,7 +8,7 @@ on:
 
 env:
   PYVER: 3.8
-  CHANNELS: defaults -c metagraph/label/dev -c conda-forge
+  CHANNELS: defaults -c metagraph/label/dev -c conda-forge -c stellargraph
 
 jobs:
   daily_check:
