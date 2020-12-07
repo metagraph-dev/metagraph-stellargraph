@@ -25,7 +25,7 @@ jobs:
           #       which leads to a segfault
           conda install -c stellargraph -c defaults -c conda-forge stellargraph 'tensorflow-base>=2.3.0'
           # Install package using latest "dev" versions from metagraph channel
-          conda install -c ${{ env.CHANNELS }} metagraph-igraph
+          conda install -c ${{ env.CHANNELS }} metagraph-stellargraph
           conda list
       - name: Pytest
         # TODO: add `pytest --pyargs metagraph_stellargraph` once tests actually exist
