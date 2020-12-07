@@ -1,0 +1,43 @@
+name: Daily Checkup
+
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    # Run daily at 10:35pm
+    - cron: '35 22 * * *'
+
+env:
+  PYVER: 3.8
+  CHANNELS: defaults -c metagraph/label/dev -c conda-forge -c stellargraph
+
+jobs:
+  daily_check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup conda env
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda config --set always_yes yes --set changeps1 no
+          conda update -q conda
+          conda create -n mg python=${{ env.PYVER }} pytest coverage pytest-cov
+          conda activate mg
+          # TODO: remove this hack once no longer needed; without this, tensorflow gets installed incorrectly
+          #       which leads to a segfault
+          conda install -c stellargraph -c defaults -c conda-forge stellargraph 'tensorflow-base>=2.3.0'
+          # Install package using latest "dev" versions from metagraph channel
+          conda install -c ${{ env.CHANNELS }} metagraph-stellargraph
+          conda list
+      - name: Pytest
+        # TODO: add `pytest --pyargs metagraph_stellargraph` once tests actually exist
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mg
+          python -c 'import stellargraph'
+          python -c 'import metagraph_stellargraph.plugins; assert metagraph_stellargraph.plugins.has_stellargraph'
+          python -m metagraph.tests
+          python -m metagraph.tests --dask
+      - name: Notify for Failure
+        if: failure()
+        # TODO: replace this with Slack integration
+        run: |
+          echo "I failed!"
