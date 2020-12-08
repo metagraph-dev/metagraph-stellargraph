@@ -99,12 +99,11 @@ jobs:
           conda update -c ${{ env.CHANNELS }} metagraph-stellargraph
           conda list
       - name: Pytest
-        # TODO: add `pytest --pyargs metagraph_stellargraph` once tests actually exist
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mg
           python -c 'import stellargraph'
-          python -c 'import metagraph_stellargraph.plugins; assert metagraph_stellargraph.plugins.has_stellargraph'
+          pytest --pyargs metagraph_stellargraph
           python -m metagraph.tests
           python -m metagraph.tests --dask
 
