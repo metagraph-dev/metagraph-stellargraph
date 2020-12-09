@@ -41,7 +41,7 @@ if has_stellargraph:
                 index_to_label[node] = i
         return index_to_label
 
-    @concrete_algorithm("util.graph_sage_node_embedding.apply")
+    @concrete_algorithm("embedding.apply.graph_sage")
     def sg_graph_sage_node_embedding_apply(
         embedding: StellarGraphGraphSageNodeEmbedding,
         graph: NetworkXGraph,

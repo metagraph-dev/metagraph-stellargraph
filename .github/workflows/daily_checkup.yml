@@ -3,8 +3,8 @@ name: Daily Checkup
 on:
   schedule:
     # * is a special character in YAML so you have to quote this string
-    # Run daily at 10:35pm
-    - cron: '35 22 * * *'
+    # Run daily at 3:35am UTC
+    - cron: '35 3 * * *'
 
 env:
   PYVER: 3.8
@@ -28,16 +28,24 @@ jobs:
           conda install -c ${{ env.CHANNELS }} metagraph-stellargraph
           conda list
       - name: Pytest
-        # TODO: add `pytest --pyargs metagraph_stellargraph` once tests actually exist
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mg
           python -c 'import stellargraph'
-          python -c 'import metagraph_stellargraph.plugins; assert metagraph_stellargraph.plugins.has_stellargraph'
+          pytest --pyargs metagraph_stellargraph
           python -m metagraph.tests
           python -m metagraph.tests --dask
       - name: Notify for Failure
         if: failure()
-        # TODO: replace this with Slack integration
-        run: |
-          echo "I failed!"
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              attachments: [{
+                color: 'danger',
+                text: ':x: Failure\nDaily health check failed for *<https://github.com/metagraph-dev/metagraph-stellargraph/actions?query=workflow%3A%22Daily+Checkup%22|metagraph-stellargraph>*'
+              }]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
