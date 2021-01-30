@@ -1,5 +1,5 @@
-from metagraph.types import Graph, GraphSageNodeEmbedding
-from metagraph.wrappers import GraphWrapper, GraphSageNodeEmbeddingWrapper
+from metagraph.plugins.core.types import Graph, GraphSageNodeEmbedding
+from metagraph.plugins.core.wrappers import GraphWrapper, GraphSageNodeEmbeddingWrapper
 from .. import has_stellargraph
 from typing import Set, List, Dict, Any
 import copy
