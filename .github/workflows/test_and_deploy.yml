@@ -41,6 +41,7 @@ jobs:
           black metagraph_stellargraph *.py --check --diff
       - name: Pytest
         run: |
+          python -c 'import grblas; grblas.Matrix'
           pytest --pyargs metagraph
       - name: Coveralls
         env:
