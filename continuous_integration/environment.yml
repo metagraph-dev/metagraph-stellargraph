@@ -7,14 +7,10 @@ channels:
 
 dependencies:
 # dev environment
-  - python=3.7
-  - coverage
-  - pytest
-  - pytest-cov
-  - black >=20.8b1
-  - pre-commit
-  - setuptools
+  - python=3.8
+  - metagraph-dev
+  - black
 
 # metagraph-stellargraph dependencies
+  - metagraph
   - stellargraph
-  - metagraph >=0.2.3
