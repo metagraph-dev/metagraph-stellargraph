@@ -14,3 +14,8 @@ dependencies:
 # metagraph-stellargraph dependencies
   - metagraph
   - stellargraph
+
+# Unlisted stellargraph dependencies
+# If we don't install, pip will and then things break
+  - tensorflow_estimator
+  - opt-einsum
