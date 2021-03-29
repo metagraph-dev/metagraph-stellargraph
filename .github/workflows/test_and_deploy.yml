@@ -34,8 +34,6 @@ jobs:
       - name: Update env
         run: |
           conda install -q conda-build
-#          The "normal" way to install locally kept installing old version of numpy and scipy on top of the conda install ones
-#          pip install -e .
           python setup.py develop --no-deps
       - name: Lint with Black
         run: |
