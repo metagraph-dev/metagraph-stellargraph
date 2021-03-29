@@ -6,14 +6,11 @@ channels:
 
 dependencies:
 # dev environment
-  - python=3.7
-  - coverage
-  - pytest
-  - pytest-cov
+  - python=3.8
   - black
   - conda-forge::pre-commit
   - setuptools
-  - metagraph::metagraph
+  - metagraph::metagraph-dev
 
 # metagraph-stellargraph dependencies
   - stellargraph::stellargraph

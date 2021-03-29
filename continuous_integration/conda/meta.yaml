@@ -13,17 +13,15 @@ build:
 
 requirements:
   build:
-    - python >=3.7
+    - python
   run:
-    - python >=3.7
+    - python
     - stellargraph
-    - metagraph >=0.2.3
+    - metagraph >=0.2.5
 
 test:
   requires:
-    - pytest
-    - pytest-cov
-    - coverage
+    - metagraph-dev
   commands:
     - py.test --cov-report term-missing --cov=metagraph_stellargraph --pyargs metagraph.tests
 
