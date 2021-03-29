@@ -17,5 +17,5 @@ dependencies:
 
 # Unlisted stellargraph dependencies
 # If we don't install, pip will and then things break
-  - tensorflow_estimator
+  - tensorflow-estimator
   - opt-einsum
