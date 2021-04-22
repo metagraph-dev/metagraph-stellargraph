@@ -17,7 +17,7 @@ requirements:
   run:
     - python
     - stellargraph
-    - metagraph >=0.2.5
+    - metagraph >=0.2.6
 
 test:
   requires:
