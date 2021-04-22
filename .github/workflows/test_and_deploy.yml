@@ -87,7 +87,7 @@ jobs:
           python-version: ${{ matrix.pyver }}
       - name: Update env
         run: |
-          conda install -c ${{ env.CHANNELS }} metagraph-dev
+          conda install -c ${{ env.CHANNELS }} 'metagraph-dev>=0.2.6'
           # TODO: remove this hack once no longer needed; without this, tensorflow gets installed incorrectly
           #       which leads to a segfault
           conda install -c stellargraph -c defaults -c conda-forge stellargraph 'tensorflow-base>=2.3.0'
